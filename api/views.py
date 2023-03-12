@@ -2,8 +2,10 @@ import json
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseBadRequest, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from .serializers import PeliculaSerializer
 
 from .models import Pelicula
+from rest_framework.parsers import JSONParser
 
 # Create your views here.
 
@@ -12,41 +14,17 @@ from .models import Pelicula
 def peliculas(request):
     if request.method == 'GET':
         peliculas = Pelicula.objects.all()
-        respuesta = []
-        for pelicula in peliculas:
-            dict = {
-                "titulo": pelicula.titulo,
-                "sinopsis": pelicula.sinopsis
-            }
-            respuesta.append(dict)
-        return JsonResponse(respuesta, safe=False)
+        respuesta = PeliculaSerializer(peliculas, many=True)
+        return JsonResponse(respuesta.data, safe=False)
 
     elif request.method == 'POST':
-        if request.content_type != 'application/json':
-            return HttpResponse(status=400)
+        data = JSONParser().parse(request)
+        serializer = PeliculaSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data, status=201) # 201 code: created
+        return JsonResponse(serializer.errors, status=400) # 400 code: bad request
 
-        try:
-            json_data = json.loads(request.body.decode())
-        except json.JSONDecodeError:
-            return HttpResponse(status=400)
-
-        # Crear una nueva instancia de Pelicula
-        pelicula = Pelicula(
-            titulo=json_data.get('titulo', ''),
-            estreno=json_data.get('estreno', ''),
-            sinopsis=json_data.get('sinopsis', ''),
-        )
-
-        # Guardar la instancia de Pelicula en la base de datos
-        pelicula.save()
-
-        # Devolver una respuesta HTTP 201 Created con los datos de la nueva Pelicula
-        respuesta = {
-            'id': pelicula.id,
-            'titulo': pelicula.titulo,
-            'sinopsis': pelicula.sinopsis,
-        }
-        return JsonResponse(respuesta, status=201)
 
 
 @csrf_exempt
@@ -56,8 +34,16 @@ def pelicula(request, id):
     except Pelicula.DoesNotExist:
         return HttpResponse(status=404)
 
-    respuesta = {
-        "titulo": pelicula.titulo,
-        "sinopsis": pelicula.sinopsis
-    }
-    return JsonResponse(respuesta, safe=False)
+    if request.method == 'GET':
+        respuesta = PeliculaSerializer(pelicula)
+        return JsonResponse(respuesta.data, safe=False)
+    elif request.method == 'PUT':
+        data = JSONParser().parse(request)
+        serializer = PeliculaSerializer(pelicula, data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return JsonResponse(serializer.data)
+        return JsonResponse(serializer.errors, status=400)  # 400 code: bad request
+    elif request.method == 'DELETE':
+        pelicula.delete()
+        return HttpResponse(status=204) # No Content success status response code indicates that a request has succeeded
