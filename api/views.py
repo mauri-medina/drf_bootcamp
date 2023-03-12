@@ -7,9 +7,9 @@ from .models import Pelicula
 
 # Create your views here.
 
+
 @csrf_exempt
 def peliculas(request):
-
     if request.method == 'GET':
         peliculas = Pelicula.objects.all()
         respuesta = []
@@ -47,3 +47,17 @@ def peliculas(request):
             'sinopsis': pelicula.sinopsis,
         }
         return JsonResponse(respuesta, status=201)
+
+
+@csrf_exempt
+def pelicula(request, id):
+    try:
+        pelicula = Pelicula.objects.get(pk=id)
+    except Pelicula.DoesNotExist:
+        return HttpResponse(status=404)
+
+    respuesta = {
+        "titulo": pelicula.titulo,
+        "sinopsis": pelicula.sinopsis
+    }
+    return JsonResponse(respuesta, safe=False)
