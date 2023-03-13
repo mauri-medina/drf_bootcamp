@@ -6,44 +6,45 @@ from .serializers import PeliculaSerializer
 
 from .models import Pelicula
 from rest_framework.parsers import JSONParser
-
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+from rest_framework import status
 # Create your views here.
 
 
-@csrf_exempt
+@api_view(['GET', 'POST'])
 def peliculas(request):
     if request.method == 'GET':
         peliculas = Pelicula.objects.all()
         respuesta = PeliculaSerializer(peliculas, many=True)
-        return JsonResponse(respuesta.data, safe=False)
+        return Response(respuesta.data)
 
     elif request.method == 'POST':
-        data = JSONParser().parse(request)
-        serializer = PeliculaSerializer(data=data)
+        serializer = PeliculaSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data, status=201) # 201 code: created
-        return JsonResponse(serializer.errors, status=400) # 400 code: bad request
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-@csrf_exempt
+@api_view(['GET', 'PUT', 'DELETE'])
 def pelicula(request, id):
     try:
         pelicula = Pelicula.objects.get(pk=id)
     except Pelicula.DoesNotExist:
-        return HttpResponse(status=404)
+        return Response(status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
         respuesta = PeliculaSerializer(pelicula)
-        return JsonResponse(respuesta.data, safe=False)
+        return Response(respuesta.data)
     elif request.method == 'PUT':
-        data = JSONParser().parse(request)
-        serializer = PeliculaSerializer(pelicula, data=data)
+        serializer = PeliculaSerializer(pelicula, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            return JsonResponse(serializer.data)
-        return JsonResponse(serializer.errors, status=400)  # 400 code: bad request
+            return Response(serializer.data)
+        # 400 code: bad request
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     elif request.method == 'DELETE':
         pelicula.delete()
-        return HttpResponse(status=204) # No Content success status response code indicates that a request has succeeded
+        # No Content success status response code indicates that a request has succeeded
+        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
