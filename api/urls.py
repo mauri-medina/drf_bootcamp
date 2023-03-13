@@ -1,7 +1,7 @@
 from django.urls import path, include
-from .views import peliculas, pelicula
+from .views import PeliculasAPIView, PeliculaAPIView
 
 urlpatterns = [
-    path('pelicula/', peliculas),
-    path('pelicula/<int:id>', pelicula)
+    path('pelicula/', PeliculasAPIView.as_view()),
+    path('pelicula/<int:id>', PeliculaAPIView.as_view())
 ]
