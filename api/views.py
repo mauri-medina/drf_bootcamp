@@ -10,12 +10,20 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.views import APIView
+
+from rest_framework import mixins
+from rest_framework import generics
 # Create your views here.
 
 
 class PeliculasAPIView(APIView):
     def get(self, request):
         peliculas = Pelicula.objects.all()
+        
+        ordernar_por = request.GET.get('ordenarPor', '')
+        if ordernar_por:
+            peliculas = peliculas.order_by(ordernar_por)
+        
         respuesta = PeliculaSerializer(peliculas, many=True)
         return Response(respuesta.data)
 
@@ -27,25 +35,20 @@ class PeliculasAPIView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class PeliculaAPIView(APIView):
-    def get_pelicula(self, id):
-        return get_object_or_404(Pelicula, pk=id)
-
-    def get(self, request, id):
-        pelicula = self.get_pelicula(id)
-        respuesta = PeliculaSerializer(pelicula)
-        return Response(respuesta.data)
-
-    def put(self, request, id):
-        pelicula = self.get_pelicula(id)
-        serializer = PeliculaSerializer(pelicula, data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        # 400 code: bad request
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, id):
-        pelicula = self.get_pelicula(id)
-        pelicula.delete()
-        return HttpResponse(status=status.HTTP_204_NO_CONTENT)
+class PeliculaAPIView(mixins.RetrieveModelMixin, 
+                      mixins.UpdateModelMixin,
+                      mixins.DestroyModelMixin, 
+                      generics.GenericAPIView):
+    queryset = Pelicula.objects.all()
+    serializer_class = PeliculaSerializer
+    lookup_field = 'id'
+    
+    def get(self, request, *args, **kwargs):
+        return self.retrieve(request, *args, **kwargs)
+    
+    def put(self, request, *args, **kwargs):
+        return self.update(request, *args, **kwargs)
+    
+    def delete(self, request, *args, **kwargs):
+        return self.delete(request, *args, **kwargs)
+    
